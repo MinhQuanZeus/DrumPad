@@ -3,181 +3,251 @@ package zeus.minhquan.drumpad;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.media.MediaPlayer;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Menu;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
-    private ImageView pad_1, pad_2, pad_3, pad_4, pad_5, pad_6, pad_7,
-            pad_8, pad_9, pad_10, pad_11, pad_12;
-    private MediaPlayer pad_1_mp, pad_2_mp, pad_3_mp, pad_4_mp,
-            pad_5_mp, pad_6_mp, pad_7_mp, pad_8_mp, pad_9_mp, pad_10_mp, pad_11_mp, pad_12_mp;
     private float count = 100 * .01f;
+    private List<Drum> drumList;
+    private List<PressKeyInfo> pressKeyInfoList;
+
+    private class Drum {
+        private ImageView ivDrum;
+        private MediaPlayer mpDrum;
+
+        public Drum(ImageView ivDrum, MediaPlayer mpDrum) {
+            this.ivDrum = ivDrum;
+            this.mpDrum = mpDrum;
+        }
+
+        public ImageView getIvDrum() {
+            return ivDrum;
+        }
+
+        public void setIvDrum(ImageView ivDrum) {
+            this.ivDrum = ivDrum;
+        }
+
+        public MediaPlayer getMpDrum() {
+            return mpDrum;
+        }
+
+        public void setMpDrum(MediaPlayer mpDrum) {
+            this.mpDrum = mpDrum;
+        }
+    }
+
+    class PressKeyInfo {
+
+        public Drum getDrum() {
+            return drum;
+        }
+
+        public int getPointerID() {
+            return pointerID;
+        }
+
+        private Drum drum;
+        private int pointerID;
+
+        public PressKeyInfo(Drum drum, int pointerID) {
+            this.drum = drum;
+            this.pointerID = pointerID;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        pad_1 = (ImageView) findViewById(R.id.drumPad_1);
-        pad_2 = (ImageView) findViewById(R.id.drumPad_2);
-        pad_3 = (ImageView) findViewById(R.id.drumPad_3);
-        pad_4 = (ImageView) findViewById(R.id.drumPad_4);
-        pad_5 = (ImageView) findViewById(R.id.drumPad_5);
-        pad_6 = (ImageView) findViewById(R.id.drumPad_6);
-        pad_7 = (ImageView) findViewById(R.id.drumPad_7);
-        pad_8 = (ImageView) findViewById(R.id.drumPad_8);
-        pad_9 = (ImageView) findViewById(R.id.drumPad_9);
-        pad_10 = (ImageView) findViewById(R.id.drumPad_10);
-        pad_11 = (ImageView) findViewById(R.id.drumPad_11);
-        pad_12 = (ImageView) findViewById(R.id.drumPad_12);
 
-        pad_1_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1);
-        pad_2_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_2);
-        pad_3_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_3);
-        pad_4_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_4);
-        pad_5_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_5);
-        pad_6_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_6);
-        pad_7_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_7);
-        pad_8_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_8);
-        pad_9_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_9);
-        pad_10_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_10);
-        pad_11_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_11);
-        pad_12_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_12);
+        drumList = new ArrayList<>();
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_1), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_2), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_3), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_4), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_5), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_6), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_7), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_8), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_9), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_10), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_11), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_12), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        pressKeyInfoList = new ArrayList<>();
 
-        pad_1.setOnClickListener(playSound);
-        pad_2.setOnClickListener(playSound);
-        pad_3.setOnClickListener(playSound);
-        pad_4.setOnClickListener(playSound);
-        pad_5.setOnClickListener(playSound);
-        pad_6.setOnClickListener(playSound);
-        pad_7.setOnClickListener(playSound);
-        pad_8.setOnClickListener(playSound);
-        pad_9.setOnClickListener(playSound);
-        pad_10.setOnClickListener(playSound);
-        pad_11.setOnClickListener(playSound);
-        pad_12.setOnClickListener(playSound);
 
     }
 
-    ImageView.OnClickListener playSound = new ImageView.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            switch (v.getId()) {
-                case R.id.drumPad_1:
-                    if (pad_1_mp != null) {
-                        pad_1_mp.stop();
-                        pad_1_mp.release();
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+//        int pointerIndex = MotionEventCompat.getActionIndex(event);
+//        int pointerId = event.getPointerId(pointerIndex);
+//        float pointerX = event.getX(pointerIndex);
+//        float pointerY = event.getY(pointerIndex);
+//          int pointerAction = event.getActionMasked();
+//        if (pointerAction == MotionEvent.ACTION_MOVE) {
+//            for (pointerIndex = 0; pointerIndex < event.getPointerCount(); pointerIndex++) {
+//               pointerId = event.getPointerId(pointerIndex);
+//               pointerX = event.getX(pointerIndex);
+//               pointerY = event.getY(pointerIndex);
+//                for (int i = 0; i < pressKeyInfoList.size(); i++) {
+//                    PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
+//                    if (pressKeyInfo.getPointerID() == pointerId && !isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())) {
+//                        //touch moved outside view
+//                        pressKeyInfoList.remove(i);
+//                        setPress(pressKeyInfo.getDrum(), false);
+//                    }
+//
+//                }
+//            }
+//        }
+        for (int pointerIndex = 0; pointerIndex < event.getPointerCount(); pointerIndex++) {
+            int pointerId = event.getPointerId(pointerIndex);
+            float pointerX = event.getX(pointerIndex);
+            float pointerY = event.getY(pointerIndex);
+            int pointerAction = event.getActionMasked();
+            if (pointerAction == MotionEvent.ACTION_MOVE) {
+                for (int i = 0; i < pressKeyInfoList.size(); i++) {
+                    PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
+                    if (pressKeyInfo.getPointerID() == pointerId && !isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())) {
+                        //touch moved outside view
+                        pressKeyInfoList.remove(i);
+                        setPress(pressKeyInfo.getDrum(), false, false);
+                    }else if(pressKeyInfo.getPointerID() == pointerId && isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())){
+                        setPress(pressKeyInfo.getDrum(), true, false);
                     }
-                    pad_1_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1);
-                    pad_1_mp.setVolume(count, count);
-                    pad_1_mp.start();
-                    break;
-                case R.id.drumPad_2:
-                    if (pad_2_mp != null) {
-                        pad_2_mp.stop();
-                        pad_2_mp.release();
+
+
+                }
+            }
+
+            Drum pressedKey = findPressKey(pointerX, pointerY);
+            if (pressedKey != null) {
+                if (pointerAction == MotionEvent.ACTION_DOWN || pointerAction == MotionEvent.ACTION_POINTER_DOWN || pointerAction == MotionEvent.ACTION_MOVE) {
+                    if (!isContainsKeyInfoWith(pressedKey)) {
+                        pressKeyInfoList.add(new PressKeyInfo(pressedKey, pointerId));
+                        setPress(pressedKey, true, true);
+                    }else{
+                        setPress(pressedKey,true,false);
                     }
-                    pad_2_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_2);
-                    pad_2_mp.setVolume(count, count);
-                    pad_2_mp.start();
-                    break;
-                case R.id.drumPad_3:
-                    if (pad_3_mp != null) {
-                        pad_3_mp.stop();
-                        pad_3_mp.release();
+
+                }
+                if (pointerAction == MotionEvent.ACTION_UP || pointerAction == MotionEvent.ACTION_POINTER_UP) {
+                    for (int i = 0; i < pressKeyInfoList.size(); i++) {
+                        PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
+                        if (pressKeyInfo.getPointerID() == pointerId) {
+                            pressKeyInfoList.remove(i);
+                        }
                     }
-                    pad_3_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_3);
-                    pad_3_mp.setVolume(count, count);
-                    pad_3_mp.start();
-                    break;
-                case R.id.drumPad_4:
-                    if (pad_4_mp != null) {
-                        pad_4_mp.stop();
-                        pad_4_mp.release();
-                    }
-                    pad_4_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_4);
-                    pad_4_mp.setVolume(count, count);
-                    pad_4_mp.start();
-                    break;
-                case R.id.drumPad_5:
-                    if (pad_5_mp != null) {
-                        pad_5_mp.stop();
-                        pad_5_mp.release();
-                    }
-                    pad_5_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_5);
-                    pad_5_mp.setVolume(count, count);
-                    pad_5_mp.start();
-                    break;
-                case R.id.drumPad_6:
-                    if (pad_6_mp != null) {
-                        pad_6_mp.stop();
-                        pad_6_mp.release();
-                    }
-                    pad_6_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_6);
-                    pad_6_mp.setVolume(count, count);
-                    pad_6_mp.start();
-                    break;
-                case R.id.drumPad_7:
-                    if (pad_7_mp != null) {
-                        pad_7_mp.stop();
-                        pad_7_mp.release();
-                    }
-                    pad_7_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_7);
-                    pad_7_mp.setVolume(count, count);
-                    pad_7_mp.start();
-                    break;
-                case R.id.drumPad_8:
-                    if (pad_8_mp != null) {
-                        pad_8_mp.stop();
-                        pad_8_mp.release();
-                    }
-                    pad_8_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_8);
-                    pad_8_mp.setVolume(count, count);
-                    pad_8_mp.start();
-                    break;
-                case R.id.drumPad_9:
-                    if (pad_9_mp != null) {
-                        pad_9_mp.stop();
-                        pad_9_mp.release();
-                    }
-                    pad_9_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_9);
-                    pad_9_mp.setVolume(count, count);
-                    pad_9_mp.start();
-                    break;
-                case R.id.drumPad_10:
-                    if (pad_10_mp != null) {
-                        pad_10_mp.stop();
-                        pad_10_mp.release();
-                    }
-                    pad_10_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_10);
-                    pad_10_mp.setVolume(count, count);
-                    pad_10_mp.start();
-                    break;
-                case R.id.drumPad_11:
-                    if (pad_11_mp != null) {
-                        pad_11_mp.stop();
-                        pad_11_mp.release();
-                    }
-                    pad_11_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_11);
-                    pad_11_mp.setVolume(count, count);
-                    pad_11_mp.start();
-                    break;
-                case R.id.drumPad_12:
-                    if (pad_12_mp != null) {
-                        pad_12_mp.stop();
-                        pad_12_mp.release();
-                    }
-                    pad_12_mp = MediaPlayer.create(MainActivity.this, R.raw.drum_pad_12);
-                    pad_12_mp.setVolume(count, count);
-                    pad_12_mp.start();
-                    break;
-                default:
-                    break;
+                    setPress(pressedKey, false,false);
+                }
             }
         }
-    };
+        return super.onTouchEvent(event);
+    }
+
+
+    private Drum findPressKey(float pointerX, float pointerY) {
+        for (int i = 0; i < drumList.size(); i++) {
+            if (isInside(pointerX, pointerY, drumList.get(i).getIvDrum())) {
+                return drumList.get(i);
+            }
+        }
+        return null;
+    }
+
+
+    private boolean isInside(float x, float y, View v) {
+
+        int[] location = new int[2];
+        v.getLocationOnScreen(location);
+        int left = location[0];
+        int top = location[1];
+
+        int right = left + v.getWidth();
+        int button = top + v.getHeight();
+        return x > left && x < right && y < button && y > top;
+    }
+
+
+    private void setPress(Drum drum, boolean isPress, boolean isPlay) {
+        if (isPress) {
+            if (drumList.contains(drum)) {
+                int index = drumList.indexOf(drum);
+                drum.getIvDrum().setImageResource(R.drawable.green);
+                if(isPlay) {
+                    if (drum.getMpDrum() != null) {
+                        drum.getMpDrum().stop();
+                        drum.getMpDrum().reset();
+                        drum.getMpDrum().release();
+                    }
+                    switch (index) {
+                        case 0:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1));
+                            break;
+                        case 1:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_2));
+                            break;
+                        case 2:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_3));
+                            break;
+                        case 3:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_4));
+                            break;
+                        case 4:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_5));
+                            break;
+                        case 5:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_6));
+                            break;
+                        case 6:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_7));
+                            break;
+                        case 7:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_8));
+                            break;
+                        case 8:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_9));
+                            break;
+                        case 9:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_10));
+                            break;
+                        case 10:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_11));
+                            break;
+                        case 11:
+                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_12));
+                            break;
+                    }
+                    drum.getMpDrum().setVolume(count, count);
+                    drum.getMpDrum().start();
+                }
+            }
+        } else {
+            if (drumList.contains(drum)) {
+                drum.getIvDrum().setImageResource(R.drawable.red);
+            }
+        }
+    }
+
+    private boolean isContainsKeyInfoWith(Drum drum) {
+        for (PressKeyInfo pressKeyInfo : pressKeyInfoList) {
+            if (pressKeyInfo.getDrum() == drum) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     // event handler for back button press
     @Override
@@ -190,30 +260,10 @@ public class MainActivity extends AppCompatActivity {
 
                             @Override
                             public void onClick(DialogInterface arg0, int arg1) {
-                                pad_1_mp.stop();
-                                pad_1_mp.release();
-                                pad_2_mp.stop();
-                                pad_2_mp.release();
-                                pad_3_mp.stop();
-                                pad_3_mp.release();
-                                pad_4_mp.stop();
-                                pad_4_mp.release();
-                                pad_5_mp.stop();
-                                pad_5_mp.release();
-                                pad_6_mp.stop();
-                                pad_6_mp.release();
-                                pad_7_mp.stop();
-                                pad_7_mp.release();
-                                pad_8_mp.stop();
-                                pad_8_mp.release();
-                                pad_9_mp.stop();
-                                pad_9_mp.release();
-                                pad_10_mp.stop();
-                                pad_10_mp.release();
-                                pad_11_mp.stop();
-                                pad_11_mp.release();
-                                pad_12_mp.stop();
-                                pad_12_mp.release();
+                                for (Drum drum : drumList) {
+                                    drum.getMpDrum().stop();
+                                    drum.getMpDrum().release();
+                                }
                                 MainActivity.this.finish();
                             }
                         }).setNegativeButton("No", null).show();

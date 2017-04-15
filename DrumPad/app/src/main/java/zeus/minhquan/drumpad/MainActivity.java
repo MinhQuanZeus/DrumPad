@@ -1,65 +1,79 @@
 package zeus.minhquan.drumpad;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
+import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+
+import zeus.minhquan.drumpad.touches.Touch;
+import zeus.minhquan.drumpad.touches.TouchManager;
+
+import static android.Manifest.permission.RECORD_AUDIO;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.view.MotionEvent.ACTION_POINTER_DOWN;
+import static android.view.MotionEvent.ACTION_POINTER_UP;
 
 public class MainActivity extends AppCompatActivity {
     private float count = 100 * .01f;
-    private List<Drum> drumList;
+    private List<ImageView> imageViewList;
     private List<PressKeyInfo> pressKeyInfoList;
+    private static final int NUMBER_OF_MUSIC = 3;
+    //Recoder
+    private ImageView recoder, play_recorder, play, stop, next, pre;
+    String AudioSavePathInDevice = null;
+    MediaRecorder mediaRecorder;
+    Random random;
+    String RandomAudioFileName = "ABCDEFGHIJKLMNOP";
+    public static final int RequestPermissionCode = 1;
+    MediaPlayer mediaRecordPlayer = null, musicPlayer;
+    private boolean isStartRecording = true;
+    private boolean isPlayRecord = true;
+    private boolean isRecording = true;
+    private boolean isPlaying = false;
+    private boolean isPlayingMusic = false;
+    private int musicIndex = 2;
 
-    private class Drum {
-        private ImageView ivDrum;
-        private MediaPlayer mpDrum;
+    //----------
 
-        public Drum(ImageView ivDrum, MediaPlayer mpDrum) {
-            this.ivDrum = ivDrum;
-            this.mpDrum = mpDrum;
-        }
-
-        public ImageView getIvDrum() {
-            return ivDrum;
-        }
-
-        public void setIvDrum(ImageView ivDrum) {
-            this.ivDrum = ivDrum;
-        }
-
-        public MediaPlayer getMpDrum() {
-            return mpDrum;
-        }
-
-        public void setMpDrum(MediaPlayer mpDrum) {
-            this.mpDrum = mpDrum;
-        }
-    }
 
     class PressKeyInfo {
 
-        public Drum getDrum() {
-            return drum;
+        public ImageView getDrum() {
+            return view;
         }
 
         public int getPointerID() {
             return pointerID;
         }
 
-        private Drum drum;
+        private ImageView view;
         private int pointerID;
 
-        public PressKeyInfo(Drum drum, int pointerID) {
-            this.drum = drum;
+        public PressKeyInfo(ImageView view, int pointerID) {
+            this.view = view;
             this.pointerID = pointerID;
         }
     }
@@ -69,179 +83,113 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        drumList = new ArrayList<>();
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_1), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_2), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_3), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_4), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_5), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_6), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_7), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_8), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_9), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_10), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_11), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
-        drumList.add(new Drum((ImageView) findViewById(R.id.drumPad_12), MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1)));
+        next = (ImageView) findViewById(R.id.iv_play_next);
+        stop = (ImageView) findViewById(R.id.iv_stop);
+        play = (ImageView) findViewById(R.id.iv_play);
+        pre = (ImageView) findViewById(R.id.iv_pre);
+        next.setOnClickListener(playMusic);
+        stop.setOnClickListener(playMusic);
+        play.setOnClickListener(playMusic);
+        pre.setOnClickListener(playMusic);
+
+        imageViewList = new ArrayList<>();
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_1));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_2));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_3));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_4));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_5));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_6));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_7));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_8));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_9));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_10));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_11));
+        imageViewList.add((ImageView) findViewById(R.id.drumPad_12));
+
+        random = new Random();
+        recoder = (ImageView) findViewById(R.id.iv_recoder);
+        play_recorder = (ImageView) findViewById(R.id.iv_play_record);
+        recoder.setOnClickListener(recording);
+        play_recorder.setOnClickListener(playRecord);
+        SoundManager.loadSoundIntoList(this);
         pressKeyInfoList = new ArrayList<>();
-
-
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-//        int pointerIndex = MotionEventCompat.getActionIndex(event);
-//        int pointerId = event.getPointerId(pointerIndex);
-//        float pointerX = event.getX(pointerIndex);
-//        float pointerY = event.getY(pointerIndex);
-//          int pointerAction = event.getActionMasked();
-//        if (pointerAction == MotionEvent.ACTION_MOVE) {
-//            for (pointerIndex = 0; pointerIndex < event.getPointerCount(); pointerIndex++) {
-//               pointerId = event.getPointerId(pointerIndex);
-//               pointerX = event.getX(pointerIndex);
-//               pointerY = event.getY(pointerIndex);
-//                for (int i = 0; i < pressKeyInfoList.size(); i++) {
-//                    PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
-//                    if (pressKeyInfo.getPointerID() == pointerId && !isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())) {
-//                        //touch moved outside view
-//                        pressKeyInfoList.remove(i);
-//                        setPress(pressKeyInfo.getDrum(), false);
-//                    }
-//
-//                }
-//            }
-//        }
-        for (int pointerIndex = 0; pointerIndex < event.getPointerCount(); pointerIndex++) {
-            int pointerId = event.getPointerId(pointerIndex);
-            float pointerX = event.getX(pointerIndex);
-            float pointerY = event.getY(pointerIndex);
-            int pointerAction = event.getActionMasked();
-            if (pointerAction == MotionEvent.ACTION_MOVE) {
-                for (int i = 0; i < pressKeyInfoList.size(); i++) {
-                    PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
-                    if (pressKeyInfo.getPointerID() == pointerId && !isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())) {
-                        //touch moved outside view
-                        pressKeyInfoList.remove(i);
-                        setPress(pressKeyInfo.getDrum(), false, false);
-                    }else if(pressKeyInfo.getPointerID() == pointerId && isInside(pointerX, pointerY, pressKeyInfo.getDrum().getIvDrum())){
-                        setPress(pressKeyInfo.getDrum(), true, false);
-                    }
 
-
+        List<Touch> touches = TouchManager.toTouches(event);
+        //  Log.d(TAG, String.format("onTouches %s", touches));
+        if (touches.size() > 0) {
+            Touch firstTouch = touches.get(0);
+            if (firstTouch.getAction() == MotionEvent.ACTION_DOWN || firstTouch.getAction() == ACTION_POINTER_DOWN) {
+                ImageView pressedKey = findPressKey(firstTouch);
+                if (pressedKey != null && !isContainsKeyInfoWith(pressedKey)) {
+                    pressKeyInfoList.add(new PressKeyInfo(pressedKey, firstTouch.getId()));
+                    setPress(pressedKey, true);
+                    SoundManager.playSound(pressedKey.getTag().toString());
                 }
-            }
-
-            Drum pressedKey = findPressKey(pointerX, pointerY);
-            if (pressedKey != null) {
-                if (pointerAction == MotionEvent.ACTION_DOWN || pointerAction == MotionEvent.ACTION_POINTER_DOWN || pointerAction == MotionEvent.ACTION_MOVE) {
-                    if (!isContainsKeyInfoWith(pressedKey)) {
-                        pressKeyInfoList.add(new PressKeyInfo(pressedKey, pointerId));
-                        setPress(pressedKey, true, true);
-                    }else{
-                        setPress(pressedKey,true,false);
+            } else if (firstTouch.getAction() == MotionEvent.ACTION_UP || firstTouch.getAction() == ACTION_POINTER_UP) {
+                Iterator<PressKeyInfo> inforIterator = pressKeyInfoList.iterator();
+                while (inforIterator.hasNext()) {
+                    PressKeyInfo pressKeyInfo = inforIterator.next();
+                    if (pressKeyInfo.getPointerID() == firstTouch.getId()) {
+                        inforIterator.remove();
+                        setPress(pressKeyInfo.getDrum(), false);
                     }
-
                 }
-                if (pointerAction == MotionEvent.ACTION_UP || pointerAction == MotionEvent.ACTION_POINTER_UP) {
-                    for (int i = 0; i < pressKeyInfoList.size(); i++) {
-                        PressKeyInfo pressKeyInfo = pressKeyInfoList.get(i);
-                        if (pressKeyInfo.getPointerID() == pointerId) {
-                            pressKeyInfoList.remove(i);
+            } else if (firstTouch.getAction() == MotionEvent.ACTION_MOVE) {
+                for (Touch touch : touches) {
+                    ImageView pressedKey = findPressKey(touch);
+                    if (pressedKey != null && !isContainsKeyInfoWith(pressedKey)) {
+                        pressKeyInfoList.add(new PressKeyInfo(pressedKey, touch.getId()));
+                        SoundManager.playSound(pressedKey.getTag().toString());
+                        setPress(pressedKey, true);
+                    }
+                    Iterator<PressKeyInfo> inforIterator = pressKeyInfoList.iterator();
+                    while (inforIterator.hasNext()) {
+                        PressKeyInfo pressKeyInfo = inforIterator.next();
+                        if (pressKeyInfo.getPointerID() == touch.getId() && !touch.isInside(pressKeyInfo.getDrum())) {
+                            //touch moved outside view
+                            inforIterator.remove();
+                            setPress(pressKeyInfo.getDrum(), false);
                         }
                     }
-                    setPress(pressedKey, false,false);
                 }
             }
         }
+
+
         return super.onTouchEvent(event);
     }
 
 
-    private Drum findPressKey(float pointerX, float pointerY) {
-        for (int i = 0; i < drumList.size(); i++) {
-            if (isInside(pointerX, pointerY, drumList.get(i).getIvDrum())) {
-                return drumList.get(i);
+    private ImageView findPressKey(Touch touch) {
+        for (int i = 0; i < imageViewList.size(); i++) {
+            if (touch.isInside(imageViewList.get(i))) {
+                return imageViewList.get(i);
             }
         }
         return null;
     }
 
 
-    private boolean isInside(float x, float y, View v) {
-
-        int[] location = new int[2];
-        v.getLocationOnScreen(location);
-        int left = location[0];
-        int top = location[1];
-
-        int right = left + v.getWidth();
-        int button = top + v.getHeight();
-        return x > left && x < right && y < button && y > top;
-    }
-
-
-    private void setPress(Drum drum, boolean isPress, boolean isPlay) {
+    private void setPress(ImageView vKey, boolean isPress) {
         if (isPress) {
-            if (drumList.contains(drum)) {
-                int index = drumList.indexOf(drum);
-                drum.getIvDrum().setImageResource(R.drawable.green);
-                if(isPlay) {
-                    if (drum.getMpDrum() != null) {
-                        drum.getMpDrum().stop();
-                        drum.getMpDrum().reset();
-                        drum.getMpDrum().release();
-                    }
-                    switch (index) {
-                        case 0:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_1));
-                            break;
-                        case 1:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_2));
-                            break;
-                        case 2:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_3));
-                            break;
-                        case 3:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_4));
-                            break;
-                        case 4:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_5));
-                            break;
-                        case 5:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_6));
-                            break;
-                        case 6:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_7));
-                            break;
-                        case 7:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_8));
-                            break;
-                        case 8:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_9));
-                            break;
-                        case 9:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_10));
-                            break;
-                        case 10:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_11));
-                            break;
-                        case 11:
-                            drum.setMpDrum(MediaPlayer.create(MainActivity.this, R.raw.drum_pad_12));
-                            break;
-                    }
-                    drum.getMpDrum().setVolume(count, count);
-                    drum.getMpDrum().start();
-                }
+            if (imageViewList.contains(vKey)) {
+                vKey.setImageResource(R.drawable.green);
             }
         } else {
-            if (drumList.contains(drum)) {
-                drum.getIvDrum().setImageResource(R.drawable.red);
+            if (imageViewList.contains(vKey)) {
+                vKey.setImageResource(R.drawable.red);
             }
         }
     }
 
-    private boolean isContainsKeyInfoWith(Drum drum) {
+
+    private boolean isContainsKeyInfoWith(ImageView view) {
         for (PressKeyInfo pressKeyInfo : pressKeyInfoList) {
-            if (pressKeyInfo.getDrum() == drum) {
+            if (pressKeyInfo.getDrum() == view) {
                 return true;
             }
         }
@@ -260,12 +208,245 @@ public class MainActivity extends AppCompatActivity {
 
                             @Override
                             public void onClick(DialogInterface arg0, int arg1) {
-                                for (Drum drum : drumList) {
-                                    drum.getMpDrum().stop();
-                                    drum.getMpDrum().release();
+                                if(mediaRecordPlayer!=null) {
+                                    mediaRecordPlayer.stop();
+                                    mediaRecordPlayer.release();
+                                }
+                                if(musicPlayer!=null) {
+                                    musicPlayer.stop();
+                                    musicPlayer.release();
                                 }
                                 MainActivity.this.finish();
                             }
                         }).setNegativeButton("No", null).show();
     }
+
+    ImageView.OnClickListener playRecord = new ImageView.OnClickListener() {
+        @Override
+        public void onClick(View v) throws IllegalArgumentException,
+                SecurityException, IllegalStateException {
+            if (isRecording) {
+                Toast.makeText(MainActivity.this, "Please stop recorder to play",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (isPlayRecord) {
+                mediaRecordPlayer = new MediaPlayer();
+                try {
+                    mediaRecordPlayer.setDataSource(AudioSavePathInDevice);
+                    mediaRecordPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                isPlayRecord = false;
+                isStartRecording = false;
+                isPlaying = true;
+                mediaRecordPlayer.start();
+                play_recorder.setImageResource(R.drawable.stop_play_record);
+                Toast.makeText(MainActivity.this, "Recording Playing",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                if (mediaRecordPlayer != null) {
+                    play_recorder.setImageResource(R.drawable.play_record);
+                    isPlayRecord = true;
+                    isStartRecording = true;
+                    isPlaying = false;
+                    mediaRecordPlayer.stop();
+                    mediaRecordPlayer.release();
+                    MediaRecorderReady();
+                }
+            }
+            // isPlayRecord = !isPlayRecord;
+
+        }
+    };
+
+    ImageView.OnClickListener recording = new ImageView.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (isPlaying) {
+                Toast.makeText(MainActivity.this, "Please stop player record to recording",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (isStartRecording) {
+                if (checkPermission()) {
+                    AudioSavePathInDevice = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" +
+                            CreateRandomAudioFileName(5) + "AudioRecording.3gp";
+
+                    MediaRecorderReady();
+                    isPlayRecord = false;
+                    isStartRecording = false;
+                    isRecording = true;
+
+                    try {
+                        mediaRecorder.prepare();
+                        mediaRecorder.start();
+
+                    } catch (IllegalStateException e) {
+                        // TODO Auto-generated catch block
+//                        Toast.makeText(MainActivity.this, "Recording error",
+//                                Toast.LENGTH_LONG).show();
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+//                        Toast.makeText(MainActivity.this, "Recording error",
+//                                Toast.LENGTH_LONG).show();
+                        e.printStackTrace();
+                    }
+                    recoder.setImageResource(R.drawable.stop_recording);
+                    Toast.makeText(MainActivity.this, "Recording started",
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    requestPermission();
+                }
+            } else {
+                if (mediaRecorder != null) {
+                    recoder.setImageResource(R.drawable.start_recording);
+                    isStartRecording = true;
+                    isPlayRecord = true;
+                    isRecording = false;
+                    try {
+                        mediaRecorder.stop();
+                    }catch (Exception e){
+
+                    }
+
+                    Toast.makeText(MainActivity.this, "Recording Completed",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+            //  isStartRecording = !isStartRecording;
+
+        }
+    };
+
+    public void MediaRecorderReady() {
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.UNPROCESSED);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mediaRecorder.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB);
+        mediaRecorder.setOutputFile(AudioSavePathInDevice);
+    }
+
+    public String CreateRandomAudioFileName(int string) {
+        StringBuilder stringBuilder = new StringBuilder(string);
+        int i = 0;
+        while (i < string) {
+            stringBuilder.append(RandomAudioFileName.
+                    charAt(random.nextInt(RandomAudioFileName.length())));
+
+            i++;
+        }
+        return stringBuilder.toString();
+    }
+
+    private void requestPermission() {
+        ActivityCompat.requestPermissions(MainActivity.this, new
+                String[]{WRITE_EXTERNAL_STORAGE, RECORD_AUDIO}, RequestPermissionCode);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case RequestPermissionCode:
+                if (grantResults.length > 0) {
+                    boolean StoragePermission = grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED;
+                    boolean RecordPermission = grantResults[1] ==
+                            PackageManager.PERMISSION_GRANTED;
+
+                    if (StoragePermission && RecordPermission) {
+                        Toast.makeText(MainActivity.this, "Permission Granted",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Permission Denied", Toast.LENGTH_LONG).show();
+                    }
+                }
+                break;
+        }
+    }
+
+    public boolean checkPermission() {
+        int result = ContextCompat.checkSelfPermission(getApplicationContext(),
+                WRITE_EXTERNAL_STORAGE);
+        int result1 = ContextCompat.checkSelfPermission(getApplicationContext(),
+                RECORD_AUDIO);
+        return result == PackageManager.PERMISSION_GRANTED &&
+                result1 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    ImageView.OnClickListener playMusic = new ImageView.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getTag().toString()) {
+                case "next":
+                    stopMusic();
+                    if(musicIndex<NUMBER_OF_MUSIC){
+                        musicIndex++;
+                    }else{
+                        musicIndex=1;
+                    }
+                    playMusic();
+                    break;
+                case "stop":
+                    stopMusic();
+                    break;
+                case "play":
+                    playMusic();
+                    break;
+                case "pre":
+                    stopMusic();
+                    if(musicIndex>1){
+                        musicIndex--;
+                    }else{
+                        musicIndex=3;
+                    }
+                    playMusic();
+                    break;
+            }
+        }
+    };
+
+    public void stopMusic() {
+        if (musicPlayer != null) {
+            play.setImageResource(R.drawable.play);
+            isPlayingMusic = false;
+            musicPlayer.stop();
+            musicPlayer.release();
+            musicPlayer = null;
+        }
+    }
+
+    public void playMusic() {
+        if (!isPlayingMusic) {
+            if(musicPlayer==null) {
+                musicPlayer = new MediaPlayer();
+                try {
+                    AssetFileDescriptor afd = getAssets().openFd("music_"+musicIndex+".mp3");
+                    musicPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    musicPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                musicPlayer.start();
+                play.setImageResource(R.drawable.pause);
+            }else{
+                play.setImageResource(R.drawable.pause);
+                musicPlayer.start();
+            }
+            isPlayingMusic = true;
+
+        }else{
+            if(musicPlayer!=null){
+                play.setImageResource(R.drawable.play);
+                musicPlayer.pause();
+                isPlayingMusic = false;
+            }
+        }
+    }
+
+
+
 }

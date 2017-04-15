@@ -285,13 +285,13 @@ public class MainActivity extends AppCompatActivity {
 
                     } catch (IllegalStateException e) {
                         // TODO Auto-generated catch block
-//                        Toast.makeText(MainActivity.this, "Recording error",
-//                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, "Recording error",
+                                Toast.LENGTH_LONG).show();
                         e.printStackTrace();
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
-//                        Toast.makeText(MainActivity.this, "Recording error",
-//                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, "Recording error",
+                                Toast.LENGTH_LONG).show();
                         e.printStackTrace();
                     }
                     recoder.setImageResource(R.drawable.stop_recording);

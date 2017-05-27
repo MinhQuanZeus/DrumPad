@@ -19,7 +19,7 @@ import zeus.minhquan.randomquote.R;
 
 public class ImageLoader extends AsyncTask<Void,Void,Bitmap> {
 
-    private final String IMAGE_URL = "https://source.unsplash.com/random/545x800";
+    private final String IMAGE_URL = "https://source.unsplash.com/random/545x930";
     private ImageView imageView;
     private String imageTag;
 
